@@ -118,7 +118,7 @@ async def login(ctx, *args):
 
 @bot.command()
 async def ds(ctx, *args):
-    """Renvoie l'état du compte"""
+    """Renvoie le commentaire du DS spécifié"""
     if len(args) == 0:
         await ctx.reply(f"`{bot.command_prefix}ds <numero>`")
     else:
