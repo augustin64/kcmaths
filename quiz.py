@@ -23,7 +23,7 @@ def quiz(session, mode="qdc"):
     liste_chapitres = { i.split("_")[1] for i in liste if "sol" not in i }
 
     conditions = enquiries.choose("Quels chapitres souhaites-tu réviser ?", liste_chapitres, multi=True)
-    liste_questions = [i for i in liste if True in [cond in i for cond in conditions] and not "sol" in i]
+    liste_questions = [i for i in liste if True in [cond == i.split("_")[1] for cond in conditions] and not "sol" in i]
 
     base = f"http://kcmaths.com/commun/{mode}/"
     nb_questions = len(liste_questions)
