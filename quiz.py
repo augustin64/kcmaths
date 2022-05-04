@@ -38,7 +38,7 @@ def quiz(session, mode="qdc"):
     )
     liste_questions = []
     for i in liste:
-        if True in [cond == i.split("_")[1] for cond in conditions] and not "sol" in i:
+        if True in [cond == "_".join(i.split("_")[1:-1]) for cond in conditions] and not "sol" in i:
             liste_questions.append(i)
 
     base = f"http://kcmaths.com/commun/{mode}/"
