@@ -1,3 +1,10 @@
+# bot.py
 accounts.json
 auth.py
+
+# quiz.py
+credentials.py
+.cache.pdf
+
+# Global
 **/__pycache__
