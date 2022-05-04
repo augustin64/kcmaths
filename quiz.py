@@ -28,7 +28,7 @@ def quiz(session, mode="qdc"):
     """Fonction principale gérant le quiz"""
     liste = get_liste(session, mode=mode)
     # On crée un set contenant les titres de chapitres
-    liste_chapitres = { i.split("_")[1] for i in liste if "sol" not in i }
+    liste_chapitres = { "_".join(i.split("_")[1:-1]) for i in liste if "sol" not in i }
 
     # Choix du ou des chapitres à réviser
     conditions = enquiries.choose(
