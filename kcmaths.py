@@ -1,12 +1,15 @@
 #!/usr/bin/python3
+"""
+Module to interact with http://kcmaths.com/
+"""
 import os
 from optparse import OptionParser
-import json
 import requests
 from bs4 import BeautifulSoup
 
 
 class Session():
+    """Session kcmaths"""
     def __init__(self, username, password):
         self.username = username
         self.password = password
@@ -50,7 +53,7 @@ class Session():
     def get_commentaire_ds(self, numero):
         """Renvoie le commentaire du ds numéro 'numero'"""
         r = self.session.post(
-            "http://kcmaths.com/commun/devoir_consultation_eleve_1.php", 
+            "http://kcmaths.com/commun/devoir_consultation_eleve_1.php",
             {"numero_ds": str(numero)},
             auth = self.auth
         )
@@ -82,7 +85,11 @@ class Session():
 
     def set_race_points(self, points):
         """Change le nombre de points à la race"""
-        r = self.session.post("http://kcmaths.com/commun/race_post.php", {"points_race": points}, auth=self.auth)
+        r = self.session.post(
+            "http://kcmaths.com/commun/race_post.php",
+            {"points_race": points},
+            auth=self.auth
+        )
         if "fa-check-circle" in r.text and "le score ne convient pas." not in r.text:
             return True
         return False
@@ -134,7 +141,10 @@ class Session():
                 print(f"[ x ] {filename} not in cache, downloading")
                 if not os.path.exists(f"{path}/{file_category}"):
                     os.mkdir(f"{path}/{file_category}")
-                self.download_file(f"http://kcmaths.com/{file_url}", f"{path}/{file_category}/{filename}")
+                self.download_file(
+                    f"http://kcmaths.com/{file_url}",
+                    f"{path}/{file_category}/{filename}"
+                )
         if keep_cache:
             print(f"[ > ] {unmodified_files} already in cache")
 
@@ -142,13 +152,13 @@ def __main__(options, args):
     """fonction principale si le programme n'est pas exécuté en tant que module"""
     if options.username == "":
         print("Un nom d'utilisateur doit être spécifié")
-        return
+        return 0
     if options.password == "":
         print("Un mot de passe doit être spécifié")
-        return
+        return 0
     if len(args) == 0:
         print("Une action doit être spécifiée")
-        return
+        return 0
 
     if args[0] == "download":
         session = Session(options.username, options.password)
@@ -156,19 +166,19 @@ def __main__(options, args):
             path=options.path,
             keep_cache=not options.clear_cache
         )
-        result=1
+        result = 1
     elif args[0] == "set-race":
         session = Session(options.username, options.password)
         session.login()
         session.set_race_points(options.score)
-        result=1
+        result = 1
     elif args[0] == "get-race":
         session = Session(options.username, options.password)
         session.login()
-        session.result = get_race_classement(format=options.format)
+        result = session.get_race_classement(format=options.format)
     else:
         print(f"Invalid action {args[0]}")
-        result=0
+        result = 0
     return result
 
 USAGE = "usage: %prog (download|get-race|set-race) [options]"
