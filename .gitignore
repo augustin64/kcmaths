@@ -4,7 +4,7 @@ auth.py
 
 # quiz.py
 credentials.py
-.cache.pdf
+.cache
 
 # Global
 **/__pycache__
