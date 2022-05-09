@@ -146,9 +146,11 @@ async def points(ctx, *args):
         if len(*args) == 0:
             await ctx.reply("Merci de préciser le nombre de points à rajouter")
             return
-        accounts[str(ctx.author.id)]["session"].set_race_points(args[0])
-        checkmark = "✅"
-        await ctx.message.add_reaction(checkmark)
+        if accounts[str(ctx.author.id)]["session"].set_race_points(args[0]):
+            emote = "✅"
+        else:
+            emote = "❌"
+        await ctx.message.add_reaction(emote)
         return
     await ctx.reply(f"Votre compte n'est pas inscrit. Utilisez `{bot.command_prefix}login <username> <password>` pour vous authentifier.")
     return
