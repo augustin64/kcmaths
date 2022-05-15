@@ -50,7 +50,7 @@ class Session():
             return h1.text
         return None
 
-    def get_commentaire_ds(self, numero):
+    def get_ds(self, numero):
         """Renvoie le commentaire du ds numéro 'numero'"""
         r = self.session.post(
             "http://kcmaths.com/commun/devoir_consultation_eleve_1.php",
@@ -58,10 +58,67 @@ class Session():
             auth = self.auth
         )
         soup = BeautifulSoup(r.content, "html.parser")
+        commentaire = "Pas de commentaire"
+        note, note_brute, coeff_brut, rang, moyenne = None, None, None, None, None
+        traitees, tx_traitees = None, None
+        reussies, tx_reussies = None, None
+        incompletes, tx_incompletes = None, None
+        fausses, taux_fausses = None, None
+        points_engages = None
+        questions_sujet, meilleure_note = None, None
         for i in soup.find_all("p"):
-            if "Commentaire :" in i.text:
-                return i.text
-        return "Pas de commentaire"
+            try:
+                if "Commentaire :" in i.text:
+                    commentaire = i.text
+                if "note brute" in i.text:
+                    note = i.text.split(" ")[3].split("/")[0]
+                    note_brute, coeff_brut = i.text.split(",")[1].split(" ")[4].split("/")
+                    rang = i.text.split(",")[2].split(" ")[3]
+                    moyenne = i.text.split(",")[3].split(" ")[5]
+                if "nombre de questions traitées" in i.text:
+                    traitees = i.text.split(",")[0].split(" ")[6]
+                    tx_traitees = i.text.split(",")[1].split(" ")[3]
+                if "nombre de questions réussies" in i.text:
+                    reussies = i.text.split(",")[0].split(" ")[6]
+                    tx_reussies = i.text.split(",")[1].split(" ")[3]
+                if "nombre de questions incomplètes" in i.text:
+                    incompletes = i.text.split(",")[0].split(" ")[6]
+                    tx_incompletes = i.text.split(",")[1].split(" ")[3]
+                if "nombre de questions fausses" in i.text:
+                    fausses = i.text.split(",")[0].split(" ")[6]
+                    tx_fausses = i.text.split(",")[1].split(" ")[3]
+                if "points engagés" in i.text:
+                    points_engages = i.text.split(",")[0].split(" ")[8]
+                if "nombre de questions du sujet" in i.text:
+                    questions_sujet = i.text.split(",")[0].split(" ")[7]
+                    meilleure_note = i.text.split(",")[1].split(" ")[4]
+            except ValueError:
+                pass
+
+        data = {
+            "nom": self.get_prenom_nom(),
+            "note": note,
+            "note_brute": note_brute,
+            "coeff_brut": coeff_brut,
+            "rang": rang,
+            "moyenne": moyenne,
+            "traitees": traitees,
+            "tx_traitees": tx_traitees,
+            "reussies": reussies,
+            "tx_reussies": tx_reussies,
+            "commentaire": commentaire,
+            "incompletes": incompletes,
+            "tx_incompletes": tx_incompletes,
+            "fausses": fausses,
+            "tx_fausses": tx_fausses,
+            "points_engages": points_engages,
+            "questions_sujet": questions_sujet,
+            "meilleure_note": meilleure_note
+        }
+        for key in data.keys():
+            if data[key] == "":
+                data[key] = None
+        return data
 
     def get_dernier_ds_public(self):
         """Renvoie le numero du dernier ds public"""

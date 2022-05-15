@@ -28,6 +28,61 @@ def write_accounts():
     with open("accounts.json", "w") as file:
         json.dump(acc, file)
 
+def ds_embed(account, numero, detailed=False):
+    data = account['session'].get_ds(numero)
+    embed = discord.Embed(
+        colour = discord.Colour.blue()
+    )
+    embed.set_author(name=data["nom"])
+    if data["commentaire"] is not None and data["commentaire"] != " Commentaire : ":
+        embed.add_field(name="Commentaire", value=data["commentaire"][14:], inline=False)
+    else:
+        embed.add_field(name="Commentaire", value="Pas de commentaire disponible", inline=False)
+
+    if data["note"] is not None:
+        embed.add_field(name="Note", value=f'{data["note"]}/20', inline=True)
+    if data["note_brute"] is not None:
+        embed.add_field(name="Note brute", value=f'{data["note_brute"]}/{data["coeff_brut"]}', inline=True)
+
+    if data["rang"] is not None:
+        embed.add_field(name="Rang", value=str(data["rang"]), inline=False)
+
+    if data["moyenne"] is not None:
+            embed.add_field(name="Moyenne", value=str(data["moyenne"]), inline=False)
+
+    if data["points_engages"] is not None:
+        embed.add_field(name="Points engagés dans le sujet", value=str(data["points_engages"]), inline=False)
+
+    if data["questions_sujet"] is not None:
+        embed.add_field(name="Nombre de questions du sujet", value=str(data["questions_sujet"]), inline=False)
+
+    if data["meilleure_note"] is not None:
+        embed.add_field(name="Meilleure note", value=f'{data["meilleure_note"]}/20', inline=False)
+
+    if detailed:
+        if data["reussies"] is not None:
+            embed.add_field(name="Questions réussies", value=str(data["reussies"]), inline=True)
+        if data["tx_reussies"] is not None:
+            embed.add_field(name="Taux de réussite", value=str(data["tx_reussies"]), inline=True)
+
+        if data["traitees"] is not None:
+            embed.add_field(name="Questions traitées", value=str(data["traitees"]), inline=True)
+        if data["tx_reussies"] is not None:
+            embed.add_field(name="Taux de questions traitées", value=str(data["tx_traitees"]), inline=True)
+
+        if data["incompletes"] is not None:
+            embed.add_field(name="Questions incomplètes", value=str(data["incompletes"]), inline=True)
+        if data["tx_incompletes"] is not None:
+            embed.add_field(name="Taux de questions incomplètes", value=str(data["tx_incompletes"]), inline=True)
+
+        if data["fausses"] is not None:
+            embed.add_field(name="Questions fausses", value=str(data["fausses"]), inline=True)
+        if data["tx_fausses"] is not None:
+            embed.add_field(name="Taux de questions fausses", value=str(data["tx_fausses"]), inline=True)
+    return embed
+
+
+
 
 @bot.event
 async def on_ready():
@@ -46,8 +101,8 @@ async def on_ready():
 
     while True:
         for discord_id in accounts.keys():
-            comment = accounts[discord_id]["session"].get_commentaire_ds(accounts[discord_id]["dernierDS"]+1)
-            if comment != " Commentaire : ":
+            data = accounts[discord_id]["session"].get_ds(accounts[discord_id]["dernierDS"]+1)
+            if data["commentaire"] != " Commentaire : ":
                 accounts[discord_id]["dernierDS"] += 1
                 user = await bot.fetch_user(discord_id)
                 await user.send(f"Commentaire du DS {accounts[discord_id]['dernierDS']} disponible.")
@@ -123,11 +178,10 @@ async def ds(ctx, *args):
         await ctx.reply(f"`{bot.command_prefix}ds <numero>`")
     else:
         if valid_author(ctx):
-            comment = accounts[str(ctx.author.id)]['session'].get_commentaire_ds(args[0])
-            if comment != " Commentaire : ":
-                await ctx.reply(comment)
-            else:
-                await ctx.reply("Pas de commentaire disponible")
+            detailed = False
+            if len(args) >= 2 and args[1] == "detailed":
+                detailed = True
+            await ctx.reply(embed=ds_embed(accounts[str(ctx.author.id)], args[0], detailed=detailed))
         else:
             await ctx.reply(f"Votre compte n'est pas inscrit. Utilisez `{bot.command_prefix}login <username> <password>` pour vous authentifier.")
 
