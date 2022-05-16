@@ -300,17 +300,6 @@ async def ds(ctx, *args):
 
 
 @bot.command()
-async def ip(ctx):
-    """Return the bot's IP"""
-    if valid_author(ctx):
-        await ctx.reply(f"http://{requests.get('https://api.ipify.org/').text}/")
-        return
-    await ctx.reply(
-        f"Votre compte n'est pas inscrit. Utilisez `{bot.command_prefix}login <username> <password>` pour vous authentifier."
-    )
-
-
-@bot.command()
 async def points(ctx, *args):
     """Changes the number of points"""
     if valid_author(ctx):
