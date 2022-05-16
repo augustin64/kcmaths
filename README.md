@@ -16,17 +16,17 @@ pip install -r requirements.txt
 Usage: kcmaths.py (download | get-race | set-race) [options]
 
 Options:
-  -h, --help            show this help message and exit
+  -h, --help                      show this help message and exit
   -u USERNAME, --username=USERNAME
-                        Nom d'utilisateur
+                                  Nom d'utilisateur
   -p PASSWORD, --password=PASSWORD
-                        Mot de passe
-  -P PATH, --path=PATH  chemin où stocker les fichiers téléchargés
+                                  Mot de passe
+  -P PATH, --path=PATH            chemin où stocker les fichiers téléchargés
   -s SCORE, --score=SCORE
-                        Nombres de points à la race
-  -c, --clear-cache     Supprimer le cache déjà téléchargé
+                                  Nombres de points à la race
+  -c, --clear-cache               Supprimer le cache déjà téléchargé
   -f FORMAT, --format=FORMAT
-                        Format du classement à la race (json|text)
+                                  Format du classement à la race (json|text)
 ```
 
 ## quiz.py
@@ -48,7 +48,7 @@ Les questions de cours sont sélectionnées par défaut. De plus, ce script n'es
 ## bot.py
 
 Bot discord pour interagir avec kcmaths.  
-Il enverra automatiquement une notification x aux utilisateurs connectés à chaque nouveau ds corrigé.
+Il enverra automatiquement une notification aux utilisateurs connectés à chaque nouveau DS corrigé.
 
 
 Dépendances:
