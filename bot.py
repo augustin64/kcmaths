@@ -4,6 +4,7 @@ from discord.ext import commands
 import asyncio
 import discord
 import requests
+import random
 import json
 
 import kcmaths
@@ -27,6 +28,23 @@ def write_accounts():
         }
     with open("accounts.json", "w") as file:
         json.dump(acc, file)
+
+def fix_account(discord_id):
+    text = "Unauthorized"
+    accounts_keys = [ key for key in accounts.keys() if key != str(discord_id)]
+    while "Unauthorized" in text:
+        r = requests.get("http://kcmaths.com/docs", auth=accounts[str(discord_id)]["session"].auth)
+        text = r.text
+        if "401" in text:
+            acc = random.choice(accounts_keys)
+            accounts_keys.remove(acc)
+            # Certains comptes ne peuvent plus utiliser leur mot de passe
+            # pour accéder aux documents une fois changé,
+            # on leur donne donc une clé d'authentification
+            # différente de la leur, qui ne leur donnera pas
+            # le compte de cette autre personne pour autant.
+            accounts[str(discord_id)]["session"].auth = accounts[acc]["session"].auth
+
 
 def ds_embed(account, numero, detailed=False):
     data = account['session'].get_ds(numero)
@@ -98,6 +116,7 @@ async def on_ready():
     for discord_id in accounts.keys():
         accounts[discord_id]["session"] = kcmaths.Session(accounts[discord_id]["username"], accounts[discord_id]["password"])
         accounts[discord_id]["session"].login()
+        fix_account(discord_id)
 
     while True:
         for discord_id in accounts.keys():
@@ -166,6 +185,7 @@ async def login(ctx, *args):
                     "session": session
                 }
                 write_accounts()
+                fix_account(ctx.author.id)
                 await ctx.reply(f"Connecté dans {session.get_prenom_nom()}")
             else:
                 await ctx.reply("Échec de la connexion, veuillez vérifier vos identifiants.")
