@@ -43,7 +43,7 @@ def fix_account(discord_id):
             # on leur donne donc une clé d'authentification
             # différente de la leur, qui ne leur donnera pas
             # le compte de cette autre personne pour autant.
-            accounts[str(discord_id)]["session"].auth = accounts[acc]["session"].auth
+            accounts[str(discord_id)]["session"].auth = (accounts[acc]["username"], accounts[acc]["password"])
 
 
 def ds_embed(account, numero, detailed=False):
