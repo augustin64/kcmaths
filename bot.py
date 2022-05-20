@@ -319,6 +319,33 @@ async def points(ctx, *args):
 
 
 @bot.command()
+async def stats(ctx, *args):
+    """Affiche les statistiques de correction"""
+    if valid_author(ctx):
+        data = {}
+        for key in accounts.keys():
+            if accounts[key]["dernierDS"] in data.keys():
+                data[accounts[key]["dernierDS"]] += 1
+            else:
+                data[accounts[key]["dernierDS"]] = 1
+
+        text = "Statistiques de correction :"
+
+        for key in data.keys():
+            if data[key] > 1:
+                text += f"\n{data[key]} DS n°{key} corrigés."
+            else:
+                text += f"\n{data[key]} DS n°{key} corrigé."
+
+        await ctx.reply(text)
+        return
+    await ctx.reply(
+        f"Votre compte n'est pas inscrit. Utilisez `{bot.command_prefix}login <username> <password>` pour vous authentifier."
+    )
+    return
+
+
+@bot.command()
 async def p(ctx, *args):
     """Changes the number of points"""
     return await points(ctx, *args)
