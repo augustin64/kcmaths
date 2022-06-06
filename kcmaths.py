@@ -151,6 +151,25 @@ class Session():
             return True
         return False
 
+    def get_programme_colle(self, numero_colle):
+        """Renvoie un programme de colle"""
+        r = self.session.post(
+            "http://kcmaths.com/commun/colle_consultation.php",
+            {"num_colle_consultation": numero_colle},
+            auth=self.auth
+        )
+        soup = BeautifulSoup(r.content, "html.parser")
+        props = []
+        for p in soup.find_all("p"):
+            try:
+                p["href"]
+            except KeyError:
+                props.append({
+                    "value": p.text,
+                    "has_heartbeat": p.find("i") is not None
+                })
+        return props
+
     def get_race_classement(self, format="json"):
         """Renvoie la liste des groupes de la race."""
         r = self.session.get("http://kcmaths.com/race_sommaire.php", auth=self.auth)
