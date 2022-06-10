@@ -19,10 +19,14 @@ class Session():
     def login(self):
         """Se connecte dans la session kcmaths"""
         r = self.session.post("http://kcmaths.com/index.php", {
-            "nom_session":self.username,
-            "mot_de_passe":self.password
+            "nom_session": self.username,
+            "mot_de_passe": self.password
         })
         return r
+
+    def cookie_login(self, cookie):
+        """Se connecte dans la session kcmaths à l'aide d'un cookie"""
+        self.session.cookies.set("PHPSESSID", cookie, domain='.kcmaths.com', path='/')
 
     def get_docs(self):
         "Renvoie l'adresse des URLs des documents disponibles"
@@ -30,7 +34,7 @@ class Session():
         soup = BeautifulSoup(r.content, "html.parser")
         a = soup.find("div", {"class": "accueil"}).find_all("a")
         file_list = []
-        for i in a :
+        for i in a:
             file_category = i.find_previous('h1').text
             if file_category is None:
                 file_category = "None"
@@ -38,11 +42,12 @@ class Session():
             file_url = i["href"]
             if file_name is None:
                 file_name = file_url.split("/")[-1]
-            file_list.append( (file_category, file_name, file_url) )
+            file_list.append((file_category, file_name, file_url))
         return file_list
 
     def get_prenom_nom(self):
-        """Renvoie le nom prénom apparaissant sur la page d'accueil de kcmaths"""
+        """Renvoie le nom prénom apparaissant
+        sur la page d'accueil de kcmaths"""
         r = self.session.get("http://kcmaths.com/index.php")
         soup = BeautifulSoup(r.content, "html.parser")
         h1 = soup.find("h1")
@@ -197,7 +202,7 @@ class Session():
         if cookie is None:
             self.login()
         else:
-            self.session.cookies.set("PHPSESSID", cookie, domain='.kcmaths.com', path='/')
+            self.cookie_login(cookie)
         files = self.get_docs()
         cache = os.listdir(path)
         for i in cache :

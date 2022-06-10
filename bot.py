@@ -24,6 +24,18 @@ valid_author = lambda ctx: str(ctx.author.id) in accounts
 
 bot = commands.Bot(command_prefix="%")
 
+ERROR_NOT_CONNECTED = (
+f"""Votre compte n'est pas inscrit.
+Utilisez `{bot.command_prefix}login <username> <password>`
+ou `{bot.command_prefix}cookie <username> <cookie>` pour vous authentifier.
+Pour récupérer le cookie:
+    Se connecter sur kcmaths dans une fenêtre de navigation privée/ un navigateur temporaire
+    ouvrir la console Javascript (Ctrl+Maj+K)
+    Taper `document.cookie`
+    Cela renvoie `> "PHPSESSID=<cookie>"`
+    Après avoir copié le cookie, la fenêtre peut être fermée (sans se déconnecter de kcmaths évidemment)"""
+)
+
 
 def write_accounts():
     """
@@ -34,21 +46,22 @@ def write_accounts():
         acc[account] = {
             "username": accounts[account]["username"],
             "password": accounts[account]["password"],
+            "cookie": accounts[account]["cookie"],
             "dernierDS": accounts[account]["dernierDS"],
         }
     with open("accounts.json", "w") as file:
         json.dump(acc, file)
 
 
-def fix_account(discord_id):
+def fix_account(discord_id, accounts_dict=accounts):
     """
     Vérifie que tous les comptes ont bien un accès
     """
     text = "Unauthorized"
-    accounts_keys = [key for key in accounts.keys() if key != str(discord_id)]
+    accounts_keys = [key for key in accounts_dict.keys() if key != str(discord_id)]
     while "Unauthorized" in text:
         r = requests.get(
-            "http://kcmaths.com/docs", auth=accounts[str(discord_id)]["session"].auth
+            "http://kcmaths.com/docs", auth=accounts_dict[str(discord_id)]["session"].auth
         )
         text = r.text
         if "401" in text:
@@ -61,9 +74,9 @@ def fix_account(discord_id):
             # on leur donne donc une clé d'authentification
             # différente de la leur, qui ne leur donnera pas
             # le compte de cette autre personne pour autant.
-            accounts[str(discord_id)]["session"].auth = (
-                accounts[acc]["username"],
-                accounts[acc]["password"],
+            accounts_dict[str(discord_id)]["session"].auth = (
+                accounts_dict[acc]["username"],
+                accounts_dict[acc]["password"],
             )
 
 
@@ -179,7 +192,11 @@ async def on_ready():
         accounts[discord_id]["session"] = kcmaths.Session(
             accounts[discord_id]["username"], accounts[discord_id]["password"]
         )
-        accounts[discord_id]["session"].login()
+        if accounts[discord_id]["password"] is not None:
+            accounts[discord_id]["session"].login()
+        else:
+            # La connexion peut uniquement se faire par mot de passe ou cookie
+            accounts[discord_id]["session"].cookie_login(accounts[discord_id]["cookie"])
         fix_account(discord_id)
 
     while True:
@@ -225,9 +242,7 @@ async def leaderboard(ctx, *args):
             text = "\n".join([f"{i[0]}\t{i[1]}" for i in match])
             await ctx.send(f"Voici les élèves correspondant au filtre: ```{text}```")
     else:
-        await ctx.reply(
-            f"Votre compte n'est pas inscrit. Utilisez `{bot.command_prefix}login <username> <password>` pour vous authentifier."
-        )
+        await ctx.reply(ERROR_NOT_CONNECTED)
 
 
 @bot.command()
@@ -244,9 +259,7 @@ async def info(ctx):
             f"Connecté dans {accounts[str(ctx.author.id)]['session'].get_prenom_nom()}"
         )
     else:
-        await ctx.reply(
-            f"Votre compte n'est pas inscrit. Utilisez `{bot.command_prefix}login <username> <password>` pour vous authentifier."
-        )
+        await ctx.reply(ERROR_NOT_CONNECTED)
 
 
 @bot.command()
@@ -269,10 +282,50 @@ async def login(ctx, *args):
                     "username": args[0],
                     "password": args[1],
                     "dernierDS": session.get_dernier_ds_public(),
+                    "cookie": None,
                     "session": session,
                 }
                 write_accounts()
                 fix_account(ctx.author.id)
+                await ctx.reply(f"Connecté dans {session.get_prenom_nom()}")
+            else:
+                await ctx.reply(
+                    "Échec de la connexion, veuillez vérifier vos identifiants."
+                )
+
+
+@bot.command()
+async def cookie(ctx, *args):
+    """
+    Connexion d'un nouvel utilisateur avec l'utilisation d'un cookie
+    """
+    if len(args) != 2:
+        await ctx.reply(
+f"""Utilisez `{bot.command_prefix}cookie <username> <cookie>` pour vous authentifier.
+Pour récupérer le cookie:
+    Se connecter sur kcmaths dans une fenêtre de navigation privée/ un navigateur temporaire
+    ouvrir la console Javascript (Ctrl+Maj+K)
+    Taper `document.cookie`
+    Cela renvoie `> "PHPSESSID=<cookie>"`
+    Après avoir copié le cookie, la fenêtre peut être fermée (sans se déconnecter de kcmaths évidemment)"""
+        )
+    else:
+        if valid_author(ctx):
+            await ctx.reply("Vous êtes déjà authentifié.")
+        else:
+            session = kcmaths.Session(args[0], None)
+            session.cookie_login(str(args[1]))
+            if session.get_prenom_nom() is not None:
+                accounts[str(ctx.author.id)] = {
+                    "username": args[0],
+                    "password": None,
+                    "dernierDS": session.get_dernier_ds_public(),
+                    "cookie": args[1],
+                    "session": session,
+                }
+                # On donne un autre couple (identifiant, mot de passe) à l'utilisateur
+                fix_account(ctx.author.id)
+                write_accounts()
                 await ctx.reply(f"Connecté dans {session.get_prenom_nom()}")
             else:
                 await ctx.reply(
@@ -294,9 +347,7 @@ async def ds(ctx, *args):
                 embed=ds_embed(accounts[str(ctx.author.id)], args[0], detailed=detailed)
             )
         else:
-            await ctx.reply(
-                f"Votre compte n'est pas inscrit. Utilisez `{bot.command_prefix}login <username> <password>` pour vous authentifier."
-            )
+            await ctx.reply(ERROR_NOT_CONNECTED)
 
 
 @bot.command()
@@ -312,9 +363,7 @@ async def points(ctx, *args):
             emote = "❌"
         await ctx.message.add_reaction(emote)
         return
-    await ctx.reply(
-        f"Votre compte n'est pas inscrit. Utilisez `{bot.command_prefix}login <username> <password>` pour vous authentifier."
-    )
+    await ctx.reply(ERROR_NOT_CONNECTED)
     return
 
 
@@ -339,9 +388,7 @@ async def stats(ctx, *args):
 
         await ctx.reply(text)
         return
-    await ctx.reply(
-        f"Votre compte n'est pas inscrit. Utilisez `{bot.command_prefix}login <username> <password>` pour vous authentifier."
-    )
+    await ctx.reply(ERROR_NOT_CONNECTED)
     return
 
 
