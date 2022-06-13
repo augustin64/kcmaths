@@ -38,7 +38,7 @@ class Session():
             file_category = i.find_previous('h1').text
             if file_category is None:
                 file_category = "None"
-            file_name = i.find_next('td').text + '.' + i["href"].split('.')[-1]
+            file_name = i.find_next('td').text.strip() + '.' + i["href"].split('.')[-1]
             file_url = i["href"]
             if file_name is None:
                 file_name = file_url.split("/")[-1]
