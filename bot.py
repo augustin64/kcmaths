@@ -276,8 +276,7 @@ async def login(ctx, *args):
             await ctx.reply("Vous êtes déjà authentifié.")
         else:
             session = kcmaths.Session(args[0], args[1])
-            session.login()
-            if session.get_prenom_nom() is not None:
+            if session.login():
                 accounts[str(ctx.author.id)] = {
                     "username": args[0],
                     "password": args[1],

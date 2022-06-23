@@ -22,7 +22,8 @@ class Session():
             "nom_session": self.username,
             "mot_de_passe": self.password
         })
-        return r
+        soup = BeautifulSoup(r.content, "html.parser")
+        return soup.find("h1") is not None
 
     def cookie_login(self, cookie):
         """Se connecte dans la session kcmaths à l'aide d'un cookie"""
