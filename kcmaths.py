@@ -64,7 +64,7 @@ class Session():
             auth = self.auth
         )
         soup = BeautifulSoup(r.content, "html.parser")
-        commentaire = "Pas de commentaire"
+        commentaire = None
         note, note_brute, coeff_brut, rang, moyenne = None, None, None, None, None
         traitees, tx_traitees = None, None
         reussies, tx_reussies = None, None
@@ -72,6 +72,7 @@ class Session():
         fausses, taux_fausses = None, None
         points_engages = None
         questions_sujet, meilleure_note = None, None
+        tx_fausses = None
         for i in soup.find_all("p"):
             try:
                 if "Commentaire :" in i.text:

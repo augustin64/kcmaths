@@ -19,12 +19,15 @@ if not os.path.exists("accounts.json"):
 with open("accounts.json", "r", encoding="utf8") as file:
     accounts = json.load(file)
 
-valid_author = lambda ctx: str(ctx.author.id) in accounts
-
 
 bot = commands.Bot(command_prefix="%")
 
-ERROR_NOT_CONNECTED = (
+
+
+def login_required(fn):
+    async def decorated_fn(ctx, *args):
+        if str(ctx.author.id) not in accounts:
+            await ctx.reply(
 f"""Votre compte n'est pas inscrit.
 Utilisez `{bot.command_prefix}login <username> <password>`
 ou `{bot.command_prefix}cookie <username> <cookie>` pour vous authentifier.
@@ -33,8 +36,14 @@ Pour récupérer le cookie:
     ouvrir la console Javascript (Ctrl+Maj+K)
     Taper `document.cookie`
     Cela renvoie `> "PHPSESSID=<cookie>"`
-    Après avoir copié le cookie, la fenêtre peut être fermée (sans se déconnecter de kcmaths évidemment)"""
-)
+    Après avoir copié le cookie, la fenêtre peut être fermée (sans se déconnecter de kcmaths évidemment)
+    
+Attention ! La connexion par cookie semble ne pas fonctionner sur tout le site"""
+            )
+            return None
+        return await fn(ctx, *args)
+
+    return decorated_fn
 
 
 def write_accounts():
@@ -87,7 +96,7 @@ def ds_embed(account, numero, detailed=False):
     data = account["session"].get_ds(numero)
     embed = discord.Embed(colour=discord.Colour.blue())
     embed.set_author(name=data["nom"])
-    if data["commentaire"] is not None and data["commentaire"] != " Commentaire : ":
+    if data["commentaire"] is not None and data["commentaire"] != "Commentaire : ":
         embed.add_field(
             name="Commentaire", value=data["commentaire"][14:], inline=False
         )
@@ -214,52 +223,48 @@ async def on_ready():
         await asyncio.sleep(3600)
 
 
-@bot.command()
+@bot.command(name="leaderboard")
+@login_required
 async def leaderboard(ctx, *args):
     """Returns the leaderboard state"""
-    if valid_author(ctx):
-        classement = accounts[str(ctx.author.id)]["session"].get_race_classement()
-        if len(args) == 0:
-            text = ""
-            for key, value in classement.items():
-                text += (
-                    "\t"
-                    + key
-                    + "\n"
-                    + "\n".join([f"{value[i]}\t{i}" for i in value.keys()])
-                    + "\n"
-                )
-            await ctx.reply(f"Classement actuel:```{text}```")
-        else:
-            classement_noms = {}
-            for groupe in classement.keys():
-                for eleve in classement[groupe].keys():
-                    classement_noms[eleve] = classement[groupe][eleve]
-            match = []
-            for eleve in classement_noms.keys():
-                if args[0].lower() in eleve.lower():
-                    match.append((eleve, classement_noms[eleve]))
-            text = "\n".join([f"{i[0]}\t{i[1]}" for i in match])
-            await ctx.send(f"Voici les élèves correspondant au filtre: ```{text}```")
+    classement = accounts[str(ctx.author.id)]["session"].get_race_classement()
+    if len(args) == 0:
+        text = ""
+        for key, value in classement.items():
+            text += (
+                "\t"
+                + key
+                + "\n"
+                + "\n".join([f"{value[i]}\t{i}" for i in value.keys()])
+                + "\n"
+            )
+        await ctx.reply(f"Classement actuel:```{text}```")
     else:
-        await ctx.reply(ERROR_NOT_CONNECTED)
+        classement_noms = {}
+        for groupe in classement.keys():
+            for eleve in classement[groupe].keys():
+                classement_noms[eleve] = classement[groupe][eleve]
+        match = []
+        for eleve in classement_noms.keys():
+            if args[0].lower() in eleve.lower():
+                match.append((eleve, classement_noms[eleve]))
+        text = "\n".join([f"{i[0]}\t{i[1]}" for i in match])
+        await ctx.send(f"Voici les élèves correspondant au filtre: ```{text}```")
 
 
-@bot.command()
+@bot.command(name="lb")
 async def lb(ctx, *args):
     """Returns the leaderboard state"""
     return await leaderboard(ctx, *args)
 
 
-@bot.command()
+@bot.command(name="info")
+@login_required
 async def info(ctx):
     """Renvoie l'état du compte"""
-    if valid_author(ctx):
-        await ctx.reply(
-            f"Connecté dans {accounts[str(ctx.author.id)]['session'].get_prenom_nom()}"
-        )
-    else:
-        await ctx.reply(ERROR_NOT_CONNECTED)
+    await ctx.reply(
+        f"Connecté dans {accounts[str(ctx.author.id)]['session'].get_prenom_nom()}"
+    )
 
 
 @bot.command()
@@ -272,7 +277,7 @@ async def login(ctx, *args):
             f"Utilisez `{bot.command_prefix}login <username> <password>` pour vous authentifier."
         )
     else:
-        if valid_author(ctx):
+        if str(ctx.author.id) in accounts:
             await ctx.reply("Vous êtes déjà authentifié.")
         else:
             session = kcmaths.Session(args[0], args[1])
@@ -309,7 +314,7 @@ Pour récupérer le cookie:
     Après avoir copié le cookie, la fenêtre peut être fermée (sans se déconnecter de kcmaths évidemment)"""
         )
     else:
-        if valid_author(ctx):
+        if str(ctx.author.id) in accounts:
             await ctx.reply("Vous êtes déjà authentifié.")
         else:
             session = kcmaths.Session(args[0], None)
@@ -332,62 +337,56 @@ Pour récupérer le cookie:
                 )
 
 
-@bot.command()
+@bot.command(name="ds")
+@login_required
 async def ds(ctx, *args):
     """Renvoie le commentaire du DS spécifié"""
     if len(args) == 0:
         await ctx.reply(f"`{bot.command_prefix}ds <numero>`")
     else:
-        if valid_author(ctx):
-            detailed = False
-            if len(args) >= 2 and args[1] == "detailed":
-                detailed = True
-            await ctx.reply(
-                embed=ds_embed(accounts[str(ctx.author.id)], args[0], detailed=detailed)
-            )
-        else:
-            await ctx.reply(ERROR_NOT_CONNECTED)
+        detailed = False
+        if len(args) >= 2 and args[1] == "detailed":
+            detailed = True
+        await ctx.reply(
+            embed=ds_embed(accounts[str(ctx.author.id)], args[0], detailed=detailed)
+        )
 
 
-@bot.command()
+@bot.command(name="points")
+@login_required
 async def points(ctx, *args):
     """Changes the number of points"""
-    if valid_author(ctx):
-        if len(*args) == 0:
-            await ctx.reply("Merci de préciser le nombre de points à rajouter")
-            return
-        if accounts[str(ctx.author.id)]["session"].set_race_points(args[0]):
-            emote = "✅"
-        else:
-            emote = "❌"
-        await ctx.message.add_reaction(emote)
+    if len(*args) == 0:
+        await ctx.reply("Merci de préciser le nombre de points à rajouter")
         return
-    await ctx.reply(ERROR_NOT_CONNECTED)
+    if accounts[str(ctx.author.id)]["session"].set_race_points(args[0]):
+        emote = "✅"
+    else:
+        emote = "❌"
+    await ctx.message.add_reaction(emote)
     return
 
 
-@bot.command()
+@bot.command(name="stats")
+@login_required
 async def stats(ctx, *args):
     """Affiche les statistiques de correction"""
-    if valid_author(ctx):
-        data = {}
-        for key in accounts.keys():
-            if accounts[key]["dernierDS"] in data.keys():
-                data[accounts[key]["dernierDS"]] += 1
-            else:
-                data[accounts[key]["dernierDS"]] = 1
+    data = {}
+    for key in accounts.keys():
+        if accounts[key]["dernierDS"] in data.keys():
+            data[accounts[key]["dernierDS"]] += 1
+        else:
+            data[accounts[key]["dernierDS"]] = 1
 
-        text = "Statistiques de correction :"
+    text = "Statistiques de correction :"
 
-        for key in data.keys():
-            if data[key] > 1:
-                text += f"\n{data[key]} DS n°{key} corrigés."
-            else:
-                text += f"\n{data[key]} DS n°{key} corrigé."
+    for key in data.keys():
+        if data[key] > 1:
+            text += f"\n{data[key]}/{len(accounts)} DS n°{key} corrigés."
+        else:
+            text += f"\n{data[key]}/{len(accounts)} DS n°{key} corrigé."
 
-        await ctx.reply(text)
-        return
-    await ctx.reply(ERROR_NOT_CONNECTED)
+    await ctx.reply(text)
     return
 
 
