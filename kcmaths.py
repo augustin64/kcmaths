@@ -199,6 +199,33 @@ class Session():
             text+="\t"+key+"\n"+"\n".join([f"{value[i]}\t{i}" for i in value.keys()])+"\n"
         return text
 
+    def get_colles(self):
+        """Renvoie les notes, commentaires et examinateurs des colles"""
+        r = self.session.get("http://kcmaths.com/colle_sommaire.php")
+        soup = BeautifulSoup(r.content, "html.parser")
+        colles = {}
+        numero, date, examinateur, note, commentaire = None, None, None, None, None
+        for p in soup.find_all("div", {"class": "class_formulaire"})[1].find_all("p"):
+            if numero is None:
+                text = p.text.strip().split(" ")
+                numero = text[1]
+                date = text[3]
+                examinateur = " ".join(text[5:-3])
+                note = text[-1].split("/")[0]
+                if note == '':
+                    note = -1
+                note = int(note)
+            else:
+                commentaire = p.text
+                colles[numero] = {
+                    "date": date,
+                    "examinateur": examinateur,
+                    "note": note,
+                    "commentaire": commentaire
+                }
+                numero, date, examinateur, note, commentaire = None, None, None, None, None
+        return colles
+
     def login_and_download(self, cookie=None, path="./files/kcmaths", keep_cache=True):
         """se connecte et télécharge les documents avec les informations de connexion données"""
         if cookie is None:
